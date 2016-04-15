@@ -5,16 +5,19 @@
 clc; close all; clear;
 
 % definir los parametros para el funcionamiento del guión
-data         = '../Results';
-Experimentos = {'Experimento01', 'Experimento02'};
-Poblaciones  = {'Control', 'MinimallyConsciousState', 'VegetativeState'};
+data          = '../../Results-FNC-CNM';
+% Experimentos = {'Experimento01', 'Experimento02'};
+Experimentos  = {'Experimento01'};
+Poblaciones   = {'Control', 'MinimallyConsciousState', 'VegetativeState'};
 NombresPoblaciones  = {'Control', 'MCS', 'VS/UWS'};
-%Correlacion  = {'DC', 'NMI', 'Pearson'};
-Correlacion  = {'DC'};
-Umbrales     = 0.0:0.1:1.0;
-Binary       = 0;
+%Correlacion   = {'DC', 'NMI', 'Pearson'};
+Correlacion   = {'DC'};
+%Umbrales      = 0.0:0.1:1.0;
+Umbrales      = 1
+Binary        = 0;
 % aEliminar    = [4 5 9];
-aEliminar    = [];
+aEliminar     = [];
+noArtifactual = 1;
 %                    'Degree', 'Strength', 'Clustering', 'Transitivity', 'Eigenvector', 'LocalEfficiency', 'Outreach**'
 ArrayMeasurement  = {'Strength', 'Clustering', 'LocalEfficiency', 'Eigenvector'};
 NombresArrayMeasurement = {'Strength', 'Clustering Coefficient', 'Local Efficiency', 'Eigenvector Centrality'};

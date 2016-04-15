@@ -60,35 +60,44 @@
 clc; close all; clear;
 
 % definir los parametros para el funcionamiento del guión
-data         = '../Data';
-Experimentos = {'Experimento01', 'Experimento02'};
-Poblaciones  = {'Control', 'MinimallyConsciousState', 'VegetativeState'};
-Correlacion  = {'DC', 'NMI', 'Pearson'};
-Umbrales     = 0.0:0.1:1.0;
-Binary       = 0;
-%aEliminar    = [4 5 9];
-aEliminar    = [];
+data          = '../../data';
+% Experimentos  = {'Experimento01', 'Experimento02'};
+Experimentos  = {'Experimento01'};
+Poblaciones   = {'Control', 'MinimallyConsciousState', 'VegetativeState'};
+%Correlacion   = {'DC', 'NMI', 'Pearson'};
+Correlacion   = {'DC'};
+%Umbrales      = 0.0:0.1:1.0;
+Umbrales      = 1;
+Binary        = 0;
+%aEliminar     = [4 5 9];
+aEliminar     = [];
+noArtifactual = 1;
+
 % string que identifica los nodos excliudos
 if ~isempty(aEliminar)
     excluidos = ['No-' regexprep( int2str(aEliminar), '  ', '-')];
 end
 
 % Para cada uno de los experimentos
-for e = 1 : 1 %length(Experimentos)
+for e = 1 : length(Experimentos)
     currentExp = char(Experimentos(e));
     % Para cada una de las poblaciones
     for p = 1 : length(Poblaciones)
         currentPob = char(Poblaciones(p));
         % Para cada una de las medidas de correlación
-        for c = 1 : 1 %length(Correlacion);
+        for c = 1 : length(Correlacion);
             currentCor = char(Correlacion(c));
             currentFile = [data '/' currentExp '/' currentPob '/' currentCor '.mat'];
             % Para cada archivo de medidas
             currentRed = importdata(currentFile);
+            % si se eliminan o no las redes que no tienen valores neuronales
+            if noArtifactual == 1
+               [currentRed, removedSubjects] =  removeArtifactualMatrix(currentRed);
+            end
             % obtengo el numero de pacientes
             tam = length(currentRed);
             % Para cada valor de umbral
-            for u = 1:1 %length(Umbrales)
+            for u = 1:length(Umbrales)
                 currentUmb = Umbrales(u);
                 % obtengo las dimensiones de la matriz de cada paciente 
                 dimMatrix = length(currentRed(:,:,1))-length(aEliminar);
@@ -148,12 +157,18 @@ for e = 1 : 1 %length(Experimentos)
                     % TODO: revisar la heterogeneidad de rich club
                     matrizRichclub(i,1:length(M.richclub)) = M.richclub;
                 end
-                % TODO: Guardar los valores ?
-                
                 % Guardar las medidas con bct
-                filename = ['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-measurements.mat'];
-                if ~isempty(aEliminar)
-                    filename = ['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-measurements.mat'];
+                filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-measurements.mat'];
+                if noArtifactual == 1
+                    filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-measurements.mat'];
+                    
+                    if ~isempty(aEliminar)
+                        filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-measurements.mat'];
+                    end
+                else
+                    if ~isempty(aEliminar)
+                        filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-measurements.mat'];
+                    end
                 end
                 save(filename, 'medidas','currentRed');
                 
@@ -209,46 +224,78 @@ for e = 1 : 1 %length(Experimentos)
                 % TODO: promedio y desviación estandar de las matrices de
                 %       distancia
                 
-                filename = ['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-matrixMeasurements.mat'];
-                if ~isempty(aEliminar)
-                    % Guardar las matrices de resumen de cada medida
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryDegree.csv'], matrizDegree);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryStrength.csv'], matrizStrength);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryClustering.csv'], matrizClustering);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryTransitivity.csv'], matrizTransitivity);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryEfficiency.csv'], matrizEfficiency);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryDistance.csv'], matrizDistance);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryLocalEfficiency.csv'], matrizLocalEfficiency);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryBetweenness.csv'], matrizBetweenness);
-                    % TODO: como guardar los valores del charpath
-                    % csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryCharpath.csv'], matrizCharpath);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryCharpath.csv'], [matrizCharpath{:,1}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryEccentricity.csv'], [matrizCharpath{:,3}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryRadius.csv'], [matrizCharpath{:,4}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryDiameter.csv'], [matrizCharpath{:,5}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryEigenvector.csv'], matrizEigenvector);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryModularity.csv'], matrizModularity);
-                    filename = ['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-matrixMeasurements.mat'];
-                else 
-                    % Guardar las matrices de resumen de cada medida
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryDegree.csv'], matrizDegree);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryStrength.csv'], matrizStrength);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryClustering.csv'], matrizClustering);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryTransitivity.csv'], matrizTransitivity);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryEfficiency.csv'], matrizEfficiency);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryDistance.csv'], matrizDistance);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryLocalEfficiency.csv'], matrizLocalEfficiency);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryBetweenness.csv'], matrizBetweenness);
-                    % TODO: como guardar los valores del charpath
-                    % csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryCharpath.csv'], matrizCharpath);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryCharpath.csv'], [matrizCharpath{:,1}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryEccentricity.csv'], [matrizCharpath{:,3}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryRadius.csv'], [matrizCharpath{:,4}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryDiameter.csv'], [matrizCharpath{:,5}]');
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryEigenvector.csv'], matrizEigenvector);
-                    csvwrite(['../Results/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryModularity.csv'], matrizModularity);
+                filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-matrixMeasurements.mat'];
+                if noArtifactual == 1
+                    filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-matrixMeasurements.mat'];
+                    if ~isempty(aEliminar)
+                        % Guardar las matrices de resumen de cada medida
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryDegree.csv'], matrizDegree);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryStrength.csv'], matrizStrength);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryClustering.csv'], matrizClustering);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryTransitivity.csv'], matrizTransitivity);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryEfficiency.csv'], matrizEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryDistance.csv'], matrizDistance);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryLocalEfficiency.csv'], matrizLocalEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryBetweenness.csv'], matrizBetweenness);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryCharpath.csv'], [matrizCharpath{:,1}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryEccentricity.csv'], [matrizCharpath{:,3}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryRadius.csv'], [matrizCharpath{:,4}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryDiameter.csv'], [matrizCharpath{:,5}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryEigenvector.csv'], matrizEigenvector);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summaryModularity.csv'], matrizModularity);
+                        filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-matrixMeasurements.mat'];
+                    else 
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryDegree.csv'], matrizDegree);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryStrength.csv'], matrizStrength);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryClustering.csv'], matrizClustering);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryTransitivity.csv'], matrizTransitivity);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryEfficiency.csv'], matrizEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryDistance.csv'], matrizDistance);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryLocalEfficiency.csv'], matrizLocalEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryBetweenness.csv'], matrizBetweenness);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryCharpath.csv'], [matrizCharpath{:,1}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryEccentricity.csv'], [matrizCharpath{:,3}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryRadius.csv'], [matrizCharpath{:,4}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryDiameter.csv'], [matrizCharpath{:,5}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryEigenvector.csv'], matrizEigenvector);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summaryModularity.csv'], matrizModularity);
+                    end
+                else
+                    if ~isempty(aEliminar)
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryDegree.csv'], matrizDegree);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryStrength.csv'], matrizStrength);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryClustering.csv'], matrizClustering);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryTransitivity.csv'], matrizTransitivity);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryEfficiency.csv'], matrizEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryDistance.csv'], matrizDistance);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryLocalEfficiency.csv'], matrizLocalEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryBetweenness.csv'], matrizBetweenness);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryCharpath.csv'], [matrizCharpath{:,1}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryEccentricity.csv'], [matrizCharpath{:,3}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryRadius.csv'], [matrizCharpath{:,4}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryDiameter.csv'], [matrizCharpath{:,5}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryEigenvector.csv'], matrizEigenvector);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summaryModularity.csv'], matrizModularity);
+                        filename = ['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-matrixMeasurements.mat'];
+                    else
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryDegree.csv'], matrizDegree);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryStrength.csv'], matrizStrength);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryClustering.csv'], matrizClustering);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryTransitivity.csv'], matrizTransitivity);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryEfficiency.csv'], matrizEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryDistance.csv'], matrizDistance);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryLocalEfficiency.csv'], matrizLocalEfficiency);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryBetweenness.csv'], matrizBetweenness);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryCharpath.csv'], [matrizCharpath{:,1}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryEccentricity.csv'], [matrizCharpath{:,3}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryRadius.csv'], [matrizCharpath{:,4}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryDiameter.csv'], [matrizCharpath{:,5}]');
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryEigenvector.csv'], matrizEigenvector);
+                        csvwrite(['../../Results-FNC-CNM/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summaryModularity.csv'], matrizModularity);
+                    end
                 end
                 save(filename, 'matrizDegree', 'matrizStrength', 'matrizClustering', 'matrizTransitivity', 'matrizEigenvector', 'matrizCharpath', 'matrizEfficiency', 'matrizDistance', 'matrizModularity');
+                
             end
         end
     end
