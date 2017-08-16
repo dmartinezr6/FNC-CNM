@@ -5,15 +5,16 @@
 clc; close all; clear;
 
 % definir los parametros para el funcionamiento del guión
-data          = '../../Results-FNC-CNM';
+%data          = '../../Results-FNC-CNM';
+data          = '../results';
 % Experimentos = {'Experimento01', 'Experimento02'};
 Experimentos  = {'Experimento01'};
 Poblaciones   = {'Control', 'MinimallyConsciousState', 'VegetativeState'};
-NombresPoblaciones  = {'Control', 'MCS', 'VS/UWS'};
+NombresPoblaciones  = {'Control', 'MCS', 'UWS'};
 %Correlacion   = {'DC', 'NMI', 'Pearson'};
 Correlacion   = {'DC'};
 %Umbrales      = 0.0:0.1:1.0;
-Umbrales      = 1
+Umbrales      = 0.0;
 Binary        = 0;
 % aEliminar    = [4 5 9];
 aEliminar     = [];
@@ -21,9 +22,9 @@ noArtifactual = 1;
 %                    'Degree', 'Strength', 'Clustering', 'Transitivity', 'Eigenvector', 'LocalEfficiency', 'Outreach**'
 ArrayMeasurement  = {'Strength', 'Clustering', 'LocalEfficiency', 'Eigenvector'};
 NombresArrayMeasurement = {'Strength', 'Clustering Coefficient', 'Local Efficiency', 'Eigenvector Centrality'};
-%                     'Efficiency', 'Charpath'
-SingleMeasurement  = {'Efficiency', 'Charpath', 'Radius', 'Diameter'};
-NombresSingleMeasurement  = {'Efficiency', 'Characteristic Path', 'Radius', 'Diameter'};
+%                     'Efficiency', 'Charpath', 'Modularity', 'RichClub' 'Betweenness'
+SingleMeasurement  = {'Efficiency', 'Charpath', 'Radius', 'Diameter', 'Betweenness'};
+NombresSingleMeasurement  = {'Efficiency', 'Characteristic Path', 'Radius', 'Diameter', 'Betweenness'};
 pValue = 0.05;
 nombresRedes = {'Auditory';'Cerebellum';'Default Mode Network';'Excecutive Control Left';'Excecutive Control Right';'Salliency';'Sensori-motor';'Visual lateral';'Visual Media';'Visual Occipital'};
 nombresRedes(aEliminar) = [];
@@ -37,15 +38,21 @@ if ~isempty(aEliminar)
 end
 
 % Para cada uno de los experimentos
-for e = 1 : 1 %length(Experimentos)
+for e = 1 : length(Experimentos)
     currentExp = char(Experimentos(e));
+    display(['Beginnig analysis with experiment ' currentExp]);
+    
     medidasPoblaciones = {};
     % para las medidas de redes que son de tipo arreglo(locales)
     for am = 1 : length(ArrayMeasurement)
         currentMea = char( ArrayMeasurement(am) );
+        display(['  for ' currentMea ' ...']);
+        
         % Para cada una de las medidas de correlación
-        for c = 1 : 1 %length(Correlacion);
+        for c = 1 : length(Correlacion);
             currentCor = char(Correlacion(c));
+            display(['   with ' currentCor ' correlation ...']);
+            
             meanstd = struct([]);
             medida = struct([]);
             % crea e contenedor de todas las poblaciones y el de los grupos
@@ -56,15 +63,28 @@ for e = 1 : 1 %length(Experimentos)
             % Para cada una de las poblaciones
             for p = 1 : length(Poblaciones)
                 currentPob = char(Poblaciones(p));
+                display (['    for ' currentPob ' population']);
                  % Para cada valor de umbral
-                for u = 1:1 %length(Umbrales)
+                for u = 1:length(Umbrales)
                     currentUmb = Umbrales(u);
+                    display(['    and ' num2str(currentUmb,'%-2.1f') ' threshold']);
+                    
                     % cargar el archivo
                     if ~isempty(aEliminar)
-                        currentFile = [data '/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summary' currentMea '.csv'];
+                        if noArtifactual == 1
+                            currentFile = [data '/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-NoArtifactual-summary' currentMea '.csv'];
+                        else
+                            currentFile = [data '/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-' excluidos '-summary' currentMea '.csv'];
+                        end
                     else
-                        currentFile = [data '/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summary' currentMea '.csv'];
+                        if noArtifactual == 1
+                            currentFile = [data '/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-NoArtifactual-summary' currentMea '.csv'];
+                        else
+                            currentFile = [data '/' currentExp '/' currentPob '/' currentCor '-' num2str(currentUmb,'%-2.1f') '-summary' currentMea '.csv'];
+                        end
                     end
+                    
+                    
                     currentMeasurement = load( currentFile );
                     % Separar los valores del promedio y desviación
                     % estandar de los valores de lso sujetos
@@ -89,11 +109,13 @@ for e = 1 : 1 %length(Experimentos)
             end
             % imprimir la grafica de PDF para la medida actual de
             % la poblacion actual
-            fpdf = pintarGraficaPDF(medidasPoblacion, binSize, Poblaciones, ...
-                                    nombresRedes, char(ArrayMeasurement(am)), ...
-                                    'SavePath', strcat(data,'/',currentExp), ...
-                                    'Threshold',  num2str(currentUmb,'%-2.1f'), ...
-                                    'Excluidos', excluidos);
+            
+            % Revisar las graficas 
+%            fpdf = pintarGraficaPDF(medidasPoblacion, binSize, Poblaciones, ...
+%                                    nombresRedes, char(ArrayMeasurement(am)), ...
+%                                    'SavePath', strcat(data,'/',currentExp), ...
+%                                    'Threshold',  num2str(currentUmb,'%-2.1f'), ...
+%                                    'Excluidos', excluidos);
             
             % realizar el test estadistico para mirar independencia
             test = zeros(size(currentMeasurement,2),2);
@@ -110,8 +132,8 @@ for e = 1 : 1 %length(Experimentos)
             end 
             fdc = pintarGraficaMeanSTD([ meanstd(1).mean ; meanstd(2).mean; meanstd(3).mean], ...
                                        [ meanstd(1).std;   meanstd(2).std;  meanstd(3).std], ...
-                                       { 'Control', 'MCS', 'VS/UWS' }, currentMea, ...
-                                       'Marca', (test(:,2)<pValue).*(test(:,1)) ); %, ...
+                                       { 'Control', 'MCS', 'UWS' }, currentMea, ...
+                                       'Marca', (test(:,2)<pValue).*(test(:,1))); %, ...
 %                                        'Color', [0.73 0.87 1.00; 0.93 0.78 1.00; 0.90 1.00 0.96] );
             set(fdc, 'Name',['DC for ' char(NombresArrayMeasurement(am)) '-' num2str(currentUmb,'%-2.1f') ' (Mean and Standard deviation)'], ... 
                      'Filename', [ currentMea '-' num2str(currentUmb,'%-2.1f') '-DC-MeanStD.fig'], 'NumberTitle', 'off' );
@@ -123,6 +145,35 @@ for e = 1 : 1 %length(Experimentos)
             saveas(fdc,[data '/' currentExp '/Images/fig/' filename '.fig'], 'fig');
             print(fdc,'-dpng','-r150',[ data '/' currentExp '/Images/png/' filename '.png']);    
             print(fdc,'-depsc','-r600',[ data '/' currentExp '/Images/eps/' filename '.eps']);
+            
+            
+            
+            % para cada medida de correlación se pinta una grafica polar
+            filename = [ currentMea '-' num2str(currentUmb,'%-2.1f') '-' currentCor '-PolarMap'];
+            if ~isempty(aEliminar)
+                filename = [ currentMea '-' num2str(currentUmb,'%-2.1f') '-' currentCor '-' excluidos '-PolarMap'];
+            end 
+            fdcp = pintarGraficaPolarMeanSTD([ meanstd(1).mean ; meanstd(2).mean; meanstd(3).mean], ...
+                                             [ meanstd(1).std;   meanstd(2).std;  meanstd(3).std], ...
+                                             { 'Control', 'MCS', 'UWS' }, currentMea, ...
+                                             'Marca', (test(:,2)<pValue).*(test(:,1)), ...
+                                             'RSN', nombresRedes  ); %, ...
+%                                            'Color', [0.73 0.87 1.00; 0.93 0.78 1.00; 0.90 1.00 0.96] );
+            set(fdcp, 'Name',['DC for ' char(NombresArrayMeasurement(am)) '-' num2str(currentUmb,'%-2.1f') ' (Mean and Standard deviation)'], ... 
+                      'Filename', [ currentMea '-' num2str(currentUmb,'%-2.1f') '-DC-MeanStD.fig'], 'NumberTitle', 'off' );
+            title(['{\color{red}Distance Correlation} (Mean and Standard deviation) measurements for {\color{red}' char(NombresArrayMeasurement(am)) '}'],...
+                   'FontName','palatino', 'FontSize', 14, 'FontWeight', 'bold', 'FontAngle', 'italic');
+            %set(gca,'XTickLabel', nombresRedes,'FontSize', 11);% , 'XTickLabelRotation', 90);
+            %rotateXLabels( gca, 45 )
+            set(fdcp, 'Position', [0 0 1600 600]);
+            saveas(fdcp,[data '/' currentExp '/Images/fig/' filename '.fig'], 'fig');
+            print(fdcp,'-dpng','-r150',[ data '/' currentExp '/Images/png/' filename '.png']);    
+            print(fdcp,'-depsc','-r600',[ data '/' currentExp '/Images/eps/' filename '.eps']);
+            
+            
+            
+            
+            
             
             
             % Pintar las graficas incluyendo la dispersión de los datos.
@@ -151,6 +202,13 @@ for e = 1 : 1 %length(Experimentos)
             saveas(fvp,[data '/' currentExp '/Images/fig/' filename '.fig'], 'fig');
             print(fvp,'-dpng','-r150',[ data '/' currentExp '/Images/png/' filename '.png']);
             print(fvp,'-depsc','-r600',[ data '/' currentExp '/Images/eps/' filename '.eps']);
+            
+   
+            % Pintar mapas polares de las medidas.
+            
+            
+            
+            
             
             
             
